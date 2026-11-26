@@ -3,7 +3,7 @@ import { actions, getSbConfig, getState, setSbConfig, signIn, signOut, syncNow, 
 import { APP_VERSION } from '../lib/config';
 import { backupBlob, importStaffText, parseBackup, saveFile, shareFile, staffCsv } from '../lib/export';
 import { CategoryEditor, ShiftEditor } from '../components/layout';
-import { Button, Card, confirmDialog, Field, Icon, Input, pickFile, Segmented, Spinner, toast } from '../components/ui';
+import { Button, Card, confirmDialog, Field, Icon, Input, pickFile, Spinner, toast } from '../components/ui';
 import { Capacitor } from '@capacitor/core';
 
 export default function SettingsPage() {
@@ -65,18 +65,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-          <div>
-            <div className="font-semibold mb-1">Skop amaran nama bertindih</div>
-            <Segmented
-              value={s.duplicateScope}
-              onChange={(v) => actions.saveSettings({ duplicateScope: v })}
-              options={[
-                { v: 'week', l: 'Sepanjang minggu' },
-                { v: 'day', l: 'Hari yang sama' }
-              ]}
-            />
-            <div className="text-xs text-ink-3 mt-1.5">Sistem hanya memberi amaran — anda masih boleh pilih CONTINUE ANYWAY.</div>
-          </div>
+          <div className="text-xs text-ink-3">Amaran nama bertindih hanya keluar jika nama yang sama dimasukkan lebih daripada sekali pada hari yang sama. Anda masih boleh pilih CONTINUE ANYWAY.</div>
         </Card>
       </Section>
 

@@ -307,10 +307,10 @@ export default function TimetablePage({ openSheet, onSheetOpened }: { openSheet?
 
       <Sheet open={sheet === 'dups'} onClose={() => setSheet(null)} title="Senarai nama bertindih">
         <p className="text-xs text-ink-3 mb-3">
-          Skop semakan: {data.settings.duplicateScope === 'week' ? 'sepanjang minggu' : 'hari yang sama'} (boleh ditukar di Settings).
+          Nama yang sama dimasukkan lebih daripada sekali pada hari yang sama.
         </p>
         {dups.length === 0 ? (
-          <Empty icon={<Icon.check />} title="Tiada nama bertindih" text="Setiap staf hanya mempunyai satu tugasan." />
+          <Empty icon={<Icon.check />} title="Tiada nama bertindih" text="Tiada staf yang mempunyai lebih daripada satu tugasan dalam hari yang sama." />
         ) : (
           <div className="space-y-2.5">
             {dups.map((d) => (

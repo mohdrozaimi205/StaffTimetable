@@ -33,28 +33,29 @@ describe('waktu shift default', () => {
 });
 
 describe('pengesanan nama bertindih', () => {
-  it('kesan ROZAIMI Monday Morning Leader -> Tuesday Morning Leader', () => {
+  it('nama sama hari berlainan: TIADA amaran', () => {
     const { d, w, roz } = setup();
     d.settings.categories[0].mode = 'shift';
     const mon = slotKey({ day: 0, shiftId: 'morning', categoryId: 'leader', row: 0 });
     const tue = slotKey({ day: 1, shiftId: 'morning', categoryId: 'leader', row: 0 });
     d.assigns[w.id][mon] = roz.id;
-    const c = conflictsFor(d.settings, d.assigns[w.id], roz.id, tue);
-    expect(c).toEqual([mon]);
-    expect(slotLabel(d.settings, c[0])).toBe('Monday – Morning – Leader');
-    expect(slotLabel(d.settings, tue)).toBe('Tuesday – Morning – Leader');
+    expect(conflictsFor(d.settings, d.assigns[w.id], roz.id, tue)).toEqual([]);
+    expect(duplicateList(d.settings, d.assigns[w.id])).toEqual([]);
   });
-  it('paparkan semua lokasi bila ada banyak tugasan', () => {
+  it('nama sama hari sama: amaran dengan semua lokasi hari itu', () => {
     const { d, w, roz } = setup();
-    const keys = [0, 2, 4].map((day) => slotKey({ day, shiftId: 'morning', categoryId: 'cashier', row: 0 }));
-    keys.forEach((k) => (d.assigns[w.id][k] = roz.id));
-    const n = slotKey({ day: 5, shiftId: 'afternoon', categoryId: 'cashier', row: 1 });
-    expect(conflictsFor(d.settings, d.assigns[w.id], roz.id, n)).toEqual(keys);
-    expect(duplicateList(d.settings, d.assigns[w.id])).toEqual([{ staffId: roz.id, keys }]);
+    const mLead = slotKey({ day: 0, shiftId: 'day', categoryId: 'leader', row: 0 });
+    const mCash = slotKey({ day: 0, shiftId: 'morning', categoryId: 'cashier', row: 0 });
+    const tueCash = slotKey({ day: 1, shiftId: 'morning', categoryId: 'cashier', row: 0 });
+    [mLead, mCash, tueCash].forEach((k) => (d.assigns[w.id][k] = roz.id));
+    const n = slotKey({ day: 0, shiftId: 'afternoon', categoryId: 'forecourt', row: 0 });
+    const c = conflictsFor(d.settings, d.assigns[w.id], roz.id, n);
+    expect(c).toEqual([mLead, mCash]);
+    expect(slotLabel(d.settings, mCash)).toBe('Monday – Morning – Cashier');
+    expect(duplicateList(d.settings, d.assigns[w.id])).toEqual([{ staffId: roz.id, keys: [mLead, mCash] }]);
   });
   it('skop hari: hanya hari yang sama', () => {
     const { d, w, roz } = setup();
-    d.settings.duplicateScope = 'day';
     d.assigns[w.id][slotKey({ day: 0, shiftId: 'morning', categoryId: 'cashier', row: 0 })] = roz.id;
     expect(conflictsFor(d.settings, d.assigns[w.id], roz.id, slotKey({ day: 1, shiftId: 'morning', categoryId: 'cashier', row: 0 }))).toEqual([]);
     expect(conflictsFor(d.settings, d.assigns[w.id], roz.id, slotKey({ day: 0, shiftId: 'afternoon', categoryId: 'cashier', row: 0 }))).toHaveLength(1);

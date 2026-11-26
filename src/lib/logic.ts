@@ -23,7 +23,7 @@ export function defaultSettings(): Settings {
     ],
     categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
     defaultQuota: 7,
-    duplicateScope: 'week',
+    duplicateScope: 'day',
     currentWeekId: null,
     updatedAt: 0
   };
@@ -146,28 +146,22 @@ export function locationsOf(settings: Settings, a: Assignments, staffId: string,
     .sort((x, y) => (order.get(x) ?? 0) - (order.get(y) ?? 0));
 }
 
-/** Tugasan sedia ada yang bertindih dengan ruangan baharu, ikut skop tetapan */
+/** Tugasan sedia ada pada HARI YANG SAMA dengan ruangan baharu (amaran hanya untuk nama sama dalam 1 hari) */
 export function conflictsFor(settings: Settings, a: Assignments, staffId: string, newKey: SlotKey): SlotKey[] {
-  const locs = locationsOf(settings, a, staffId, newKey);
-  if (settings.duplicateScope === 'day') {
-    const day = parseKey(newKey).day;
-    return locs.filter((k) => parseKey(k).day === day);
-  }
-  return locs;
+  const day = parseKey(newKey).day;
+  return locationsOf(settings, a, staffId, newKey).filter((k) => parseKey(k).day === day);
 }
 
-/** Senarai semua nama bertindih */
+/** Senarai nama bertindih — nama sama lebih daripada sekali dalam HARI YANG SAMA */
 export function duplicateList(settings: Settings, a: Assignments): { staffId: string; keys: SlotKey[] }[] {
   const by: Record<string, SlotKey[]> = {};
   for (const [k, id] of visibleAssignments(settings, a)) (by[id] ??= []).push(k);
   const out: { staffId: string; keys: SlotKey[] }[] = [];
   for (const [staffId, keys] of Object.entries(by)) {
-    if (settings.duplicateScope === 'day') {
-      const days: Record<number, SlotKey[]> = {};
-      keys.forEach((k) => (days[parseKey(k).day] ??= []).push(k));
-      const d = Object.values(days).filter((x) => x.length > 1).flat();
-      if (d.length) out.push({ staffId, keys: locationsOf(settings, a, staffId).filter((k) => d.includes(k)) });
-    } else if (keys.length > 1) out.push({ staffId, keys: locationsOf(settings, a, staffId) });
+    const days: Record<number, SlotKey[]> = {};
+    keys.forEach((k) => (days[parseKey(k).day] ??= []).push(k));
+    const d = Object.values(days).filter((x) => x.length > 1).flat();
+    if (d.length) out.push({ staffId, keys: locationsOf(settings, a, staffId).filter((k) => d.includes(k)) });
   }
   return out;
 }
