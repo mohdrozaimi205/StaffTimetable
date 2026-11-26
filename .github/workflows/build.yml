@@ -59,7 +59,10 @@ jobs:
           chmod +x gradlew
           set -o pipefail
           ./gradlew assembleRelease --no-daemon 2>&1 | tee build.log || {
-            grep -n -A12 -E "What went wrong|Where:|error:" build.log | head -60 | while IFS= read -r l; do echo "::error::$l"; done
+            for pat in "What went wrong" "Could not resolve org" "Caused by" "error:" "Value is null"; do
+              msg=$(grep -m1 -A15 "$pat" build.log | tr '\n' ' ' | cut -c1-1800)
+              [ -n "$msg" ] && echo "::error::$msg"
+            done
             exit 1
           }
       - name: Rename APK
