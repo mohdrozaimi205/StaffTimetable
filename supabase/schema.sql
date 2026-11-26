@@ -32,6 +32,10 @@ create table if not exists public.tt_assign (
   primary key (owner, week_id, slot_key)
 );
 
+-- Kebenaran akses Data API (projek Supabase baharu tidak memberi secara automatik)
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.tt_settings, public.tt_staff, public.tt_weeks, public.tt_assign to authenticated;
+
 -- Keselamatan: setiap akaun hanya boleh baca/tulis data sendiri
 alter table public.tt_settings enable row level security;
 alter table public.tt_staff    enable row level security;
