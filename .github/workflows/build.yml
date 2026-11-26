@@ -59,7 +59,7 @@ jobs:
           chmod +x gradlew
           set -o pipefail
           ./gradlew assembleRelease --no-daemon 2>&1 | tee build.log || {
-            grep -E "error:|ERROR|What went wrong|FAILURE|Could not|> " build.log | head -30 | while IFS= read -r l; do echo "::error::$l"; done
+            grep -n -A12 -E "What went wrong|Where:|error:" build.log | head -60 | while IFS= read -r l; do echo "::error::$l"; done
             exit 1
           }
       - name: Rename APK
