@@ -4,6 +4,12 @@ import { useSyncExternalStore } from 'react';
 import { AppData, Assignments, Settings, Staff, Week } from './types';
 import { defaultSettings, emptyData } from './logic';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+
+/** Alamat kembali selepas log masuk Google dalam APK (didaftarkan dalam AndroidManifest) */
+export const NATIVE_REDIRECT = 'com.mohdrozaimi.stafftimetable://login-callback';
 
 export type SyncStatus = 'local' | 'signedout' | 'connecting' | 'syncing' | 'synced' | 'offline' | 'error';
 
@@ -298,7 +304,8 @@ export async function initStore() {
   }
   const c = getSbConfig();
   try {
-    sb = createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
+    sb = createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce', detectSessionInUrl: true } });
+    listenNativeLogin();
     set({ status: 'connecting' });
     const { data } = await sb.auth.getSession();
     sb.auth.onAuthStateChange((ev, session) => {
@@ -331,6 +338,50 @@ export async function signIn(email: string, password: string, create = false) {
   if (create && !r.data.session) return 'confirm';
   return 'ok';
 }
+/** Log masuk dengan Google (Web: redirect; APK: pelayar sistem + kembali melalui deep link) */
+export async function signInWithGoogle() {
+  if (!sb) throw new Error('Database belum disambungkan.');
+  if (Capacitor.isNativePlatform()) {
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true, queryParams: { prompt: 'select_account' } }
+    });
+    if (error) throw new Error(error.message);
+    await Browser.open({ url: data.url, windowName: '_self' });
+  } else {
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, queryParams: { prompt: 'select_account' } } });
+    if (error) throw new Error(error.message);
+  }
+}
+
+let nativeListening = false;
+async function handleNativeUrl(url: string | undefined) {
+  if (!url || !url.startsWith(NATIVE_REDIRECT) || !sb) return;
+  try {
+    await Browser.close();
+  } catch {
+    /* pelayar mungkin sudah ditutup */
+  }
+  const u = new URL(url.replace('#', '?'));
+  const err = u.searchParams.get('error_description') || u.searchParams.get('error');
+  if (err) {
+    set({ status: 'error', error: `Log masuk Google gagal: ${err}` });
+    return;
+  }
+  const code = u.searchParams.get('code');
+  if (code) {
+    const { error } = await sb.auth.exchangeCodeForSession(code);
+    if (error) set({ status: 'error', error: `Log masuk Google gagal: ${error.message}` });
+  }
+}
+function listenNativeLogin() {
+  if (!Capacitor.isNativePlatform() || nativeListening) return;
+  nativeListening = true;
+  void CapApp.addListener('appUrlOpen', ({ url }) => void handleNativeUrl(url));
+  void CapApp.getLaunchUrl().then((r) => handleNativeUrl(r?.url));
+}
+
 export async function signOut() {
   await sb?.auth.signOut();
 }
